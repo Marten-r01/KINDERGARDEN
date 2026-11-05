@@ -7,14 +7,14 @@ CREATE TABLE age_category (
 );
 
 CREATE TABLE dish (
-    dish_id INTEGER NOT NULL,
+    dish_id INTEGER NOT NULL UNIQUE,
     dish_name VARCHAR(100) NOT NULL,
     dish_kalori INTEGER NOT NULL CHECK ( dish_kalori > 0 ),
     dish_gramm INTEGER NOT NULL CHECK ( dish_gramm > 0 )
 );
 
 CREATE TABLE premises (
-    premises_id INTEGER PRIMARY KEY,
+    premises_id INTEGER NOT NULL UNIQUE,
     premises_number INTEGER NOT NULL,
     max_count_children INTEGER,
     premises_s INTEGER CHECK ( premises_s > 0 ),
@@ -23,21 +23,73 @@ CREATE TABLE premises (
 );
 
 CREATE TABLE type_activity (
-    type_activity_id INTEGER PRIMARY KEY,
+    type_activity_id INTEGER NOT NULL UNIQUE,
     recommend_young_age INTEGER,
     recommend_old_age INTEGER,
     activity_name VARCHAR(100) NOT NULL ,
-    activity_description TEXT NOT NULL
+    activity_description TEXT NOT NULL,
+    PRIMARY KEY(type_activity_id)
 );
 
 CREATE TABLE job_title (
-    job_title_id INTEGER PRIMARY KEY,
+    job_title_id INTEGER NOT NULL UNIQUE,
     job_title_name VARCHAR(100) NOT NULL,
     job_title_hourly_workload INTEGER NOT NULL,
-    job_title_hourly_pay INTEGER NOT NULL CHECK ( job_title_hourly_pay > 0 )
+    job_title_hourly_pay INTEGER NOT NULL CHECK ( job_title_hourly_pay > 0 ),
+    primary key (job_title_id)
 );
 
 CREATE TABLE menu (
-    menu_id integer NOT NULL,
-    dish_id integer NOT NULL
+    menu_id integer NOT NULL PRIMARY KEY ,
+    dish_id integer NOT NULL REFERENCES dish(dish_id),
+    menu_name_meal varchar(100) Not Null ,
+    menu_count_posisions integer not null check(menu_count_posisions > 0)
+);
+
+CREATE TABLE meal (
+  meal_id integer not null primary key ,
+  meal_type varchar(20) not null,
+  menu_id integer not null references menu (menu_id)
+);
+
+CREATE TABLE age_category (
+  age_category_id integer not null  primary key,
+  age_category_yongest  integer not null check( age_category_yongest >0 and age_category_yongest < age_category_oldest),
+  age_category_oldest integer not null check(age_category_oldest > 0)
+);
+
+CREATE TABLE employee(
+    employee_id integer not null primary key ,
+    employee_job_title integer not null references job_title(job_title_id),
+    employee_telephone varchar(15) not null,
+    employee_passport varchar(100) not null,
+    employee_date date not null,
+    employee_work_shift integer not null references work_shift(work_shift_id)
+);
+
+CREATE TABLE work_shift (
+    work_shift_id integer not null primary key ,
+    work_shift_schedule varchar(10) not null,
+    work_shift_employee integer not null references employee(employee_id),
+    work_shift_time_start timestamp not null,
+    work_shift_time_end timestamp not null check(work_shift_time_start<work_shift_time_end)
+);
+
+create table exercise (
+    exercise_id integer not null primary key ,
+    exercise_activity_id integer not null references type_activity(type_activity_id),
+    exercise_place varchar(100) not null,
+    exercise_employee integer not null references employee(employee_id),
+    exercise_schedule integer not null references schedule(schedule_id)
+);
+
+CREATE TABLE schedule (
+   schedule_id integer not null primary key ,
+   schedule_exercise_id integer not null references exercise(exercise_id),
+   schedule_time_start timestamp not null,
+   schedule_time_end timestamp not null,
+   schedule_age_category integer not null references age_category(age_category_id),
+   schedule_groupe integer not null references groupe(groupe_id),
+   schedule_meal integer not null references meal(meal_id),
+   schedule_premises integer not null references premises(premises_id)
 );
