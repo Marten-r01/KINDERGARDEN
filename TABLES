@@ -1,0 +1,43 @@
+SELECT current_database(), current_user, version();
+
+CREATE TABLE age_category (
+    age_category_id INTEGER NOT NULL,
+    min_age INTEGER CHECK ( min_age > 0 ),
+    max_age INTEGER CHECK ( max_age >= min_age )
+);
+
+CREATE TABLE dish (
+    dish_id INTEGER NOT NULL,
+    dish_name VARCHAR(100) NOT NULL,
+    dish_kalori INTEGER NOT NULL CHECK ( dish_kalori > 0 ),
+    dish_gramm INTEGER NOT NULL CHECK ( dish_gramm > 0 )
+);
+
+CREATE TABLE premises (
+    premises_id INTEGER PRIMARY KEY,
+    premises_number INTEGER NOT NULL,
+    max_count_children INTEGER,
+    premises_s INTEGER CHECK ( premises_s > 0 ),
+    booking_start TIMESTAMP,
+    booking_end TIMESTAMP CHECK( booking_start < booking_end )
+);
+
+CREATE TABLE type_activity (
+    type_activity_id INTEGER PRIMARY KEY,
+    recommend_young_age INTEGER,
+    recommend_old_age INTEGER,
+    activity_name VARCHAR(100) NOT NULL ,
+    activity_description TEXT NOT NULL
+);
+
+CREATE TABLE job_title (
+    job_title_id INTEGER PRIMARY KEY,
+    job_title_name VARCHAR(100) NOT NULL,
+    job_title_hourly_workload INTEGER NOT NULL,
+    job_title_hourly_pay INTEGER NOT NULL CHECK ( job_title_hourly_pay > 0 )
+);
+
+CREATE TABLE menu (
+    menu_id integer NOT NULL,
+    dish_id integer NOT NULL
+);
