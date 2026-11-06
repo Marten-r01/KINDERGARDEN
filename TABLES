@@ -1,43 +1,199 @@
 SELECT current_database(), current_user, version();
 
-CREATE TABLE age_category (
-    age_category_id INTEGER NOT NULL,
-    min_age INTEGER CHECK ( min_age > 0 ),
-    max_age INTEGER CHECK ( max_age >= min_age )
-);
-
 CREATE TABLE dish (
-    dish_id INTEGER NOT NULL,
+    dish_id INTEGER PRIMARY KEY,
     dish_name VARCHAR(100) NOT NULL,
-    dish_kalori INTEGER NOT NULL CHECK ( dish_kalori > 0 ),
-    dish_gramm INTEGER NOT NULL CHECK ( dish_gramm > 0 )
+    dish_kalori INTEGER NOT NULL CHECK (dish_kalori > 0),
+    dish_gramm INTEGER NOT NULL CHECK (dish_gramm > 0)
 );
 
 CREATE TABLE premises (
     premises_id INTEGER PRIMARY KEY,
     premises_number INTEGER NOT NULL,
-    max_count_children INTEGER,
-    premises_s INTEGER CHECK ( premises_s > 0 ),
+    max_count_children INTEGER CHECK (max_count_children > 0),
+    premises_s INTEGER CHECK (premises_s > 0),
     booking_start TIMESTAMP,
-    booking_end TIMESTAMP CHECK( booking_start < booking_end )
+    booking_end TIMESTAMP,
+    CHECK (booking_start < booking_end)
 );
 
 CREATE TABLE type_activity (
     type_activity_id INTEGER PRIMARY KEY,
-    recommend_young_age INTEGER,
-    recommend_old_age INTEGER,
-    activity_name VARCHAR(100) NOT NULL ,
-    activity_description TEXT NOT NULL
+    recommend_young_age INTEGER CHECK (recommend_young_age >= 0),
+    recommend_old_age INTEGER CHECK (recommend_old_age >= 0),
+    activity_name VARCHAR(100) NOT NULL,
+    activity_description TEXT NOT NULL,
+    CHECK (recommend_old_age >= recommend_young_age)
 );
 
 CREATE TABLE job_title (
     job_title_id INTEGER PRIMARY KEY,
     job_title_name VARCHAR(100) NOT NULL,
-    job_title_hourly_workload INTEGER NOT NULL,
-    job_title_hourly_pay INTEGER NOT NULL CHECK ( job_title_hourly_pay > 0 )
+    job_title_hourly_workload INTEGER NOT NULL
+        CHECK (job_title_hourly_workload > 0),
+    job_title_hourly_pay INTEGER NOT NULL
+        CHECK (job_title_hourly_pay > 0)
+);
+
+CREATE TABLE meal (
+    meal_id INTEGER PRIMARY KEY,
+    meal_type VARCHAR(20) NOT NULL
 );
 
 CREATE TABLE menu (
-    menu_id integer NOT NULL,
-    dish_id integer NOT NULL
+    menu_id INTEGER PRIMARY KEY,
+    meal_id INTEGER NOT NULL REFERENCES meal(meal_id),
+    dish_id INTEGER NOT NULL REFERENCES dish(dish_id),
+    UNIQUE (meal_id, dish_id)
+);
+
+CREATE TABLE age_category (
+    age_category_id INTEGER PRIMARY KEY,
+    age_category_youngest INTEGER NOT NULL
+        CHECK (age_category_youngest > 0),
+    age_category_oldest INTEGER NOT NULL
+        CHECK (age_category_oldest > age_category_youngest)
+);
+
+CREATE TABLE employee (
+    employee_id INTEGER PRIMARY KEY,
+    employee_job_title INTEGER NOT NULL REFERENCES job_title(job_title_id),
+    employee_telephone VARCHAR(15) NOT NULL,
+    employee_passport VARCHAR(100) NOT NULL UNIQUE,
+    employee_date DATE NOT NULL
+);
+
+CREATE TABLE work_shift (
+    work_shift_id INTEGER PRIMARY KEY,
+    work_shift_schedule VARCHAR(10) NOT NULL,
+    work_shift_employee INTEGER NOT NULL REFERENCES employee(employee_id),
+    work_shift_time_start TIMESTAMP NOT NULL,
+    work_shift_time_end TIMESTAMP NOT NULL,
+    CHECK (work_shift_time_start < work_shift_time_end)
+);
+
+CREATE TABLE exercise (
+    exercise_id INTEGER PRIMARY KEY,
+    exercise_activity_id INTEGER NOT NULL
+        REFERENCES type_activity(type_activity_id),
+    exercise_place VARCHAR(100) NOT NULL,
+    exercise_employee INTEGER NOT NULL REFERENCES employee(employee_id)
+);
+
+CREATE TABLE kinder_group (
+    group_id INTEGER PRIMARY KEY,
+    group_number VARCHAR(20) NOT NULL,
+    group_age_category INTEGER NOT NULL
+        REFERENCES age_category(age_category_id),
+    group_employee INTEGER NOT NULL REFERENCES employee(employee_id)
+);
+
+CREATE TABLE child (
+    id_child INTEGER PRIMARY KEY,
+    FIO TEXT NOT NULL,
+    date_birth DATE NOT NULL,
+    sex BOOLEAN NOT NULL,
+    birth_certificate VARCHAR(20) NOT NULL UNIQUE,
+    adress TEXT,
+    id_group INTEGER NOT NULL REFERENCES kinder_group(group_id)
+);
+
+CREATE TABLE medical_exam (
+    id_medical_exam INTEGER PRIMARY KEY,
+    id_child INTEGER NOT NULL REFERENCES child(id_child),
+    plan TEXT,
+    date_exam DATE,
+    results TEXT,
+    complaint TEXT,
+    status BOOLEAN
+);
+
+CREATE TABLE medical_record (
+    id_medical_record INTEGER PRIMARY KEY,
+    id_child INTEGER NOT NULL UNIQUE REFERENCES child(id_child),
+    blood_type VARCHAR(10) NOT NULL,
+    physical_mental TEXT,
+    infections TEXT,
+    operation_complited TEXT,
+    alergic TEXT,
+    diseases TEXT
+);
+
+CREATE TABLE vaccination (
+    id_vaccination INTEGER PRIMARY KEY,
+    id_medical_record INTEGER NOT NULL
+        REFERENCES medical_record(id_medical_record),
+    name VARCHAR(40) NOT NULL,
+    place VARCHAR(40) NOT NULL,
+    date_vac DATE,
+    status BOOLEAN,
+    dose SMALLINT CHECK (dose > 0)
+);
+
+CREATE TABLE parent (
+    id_parent INTEGER PRIMARY KEY,
+    inn VARCHAR(30) NOT NULL UNIQUE,
+    date_birth DATE,
+    contact_data TEXT NOT NULL,
+    passport VARCHAR(30) NOT NULL UNIQUE,
+    adress TEXT
+);
+
+CREATE TABLE contract (
+    id_contract INTEGER PRIMARY KEY,
+    id_child INTEGER NOT NULL REFERENCES child(id_child),
+    id_parent INTEGER NOT NULL REFERENCES parent(id_parent),
+    sum NUMERIC NOT NULL CHECK (sum >= 0),
+    number_contract INTEGER NOT NULL UNIQUE,
+    bank TEXT,
+    status BOOLEAN,
+    date_start DATE,
+    date_end DATE,
+    CHECK (date_end >= date_start)
+);
+
+CREATE TABLE paying (
+    id_paying INTEGER PRIMARY KEY,
+    id_parent INTEGER NOT NULL REFERENCES parent(id_parent),
+    id_contract INTEGER NOT NULL REFERENCES contract(id_contract),
+    paying_sum NUMERIC NOT NULL CHECK (paying_sum > 0),
+    date_paying DATE NOT NULL
+);
+
+CREATE TABLE schedule (
+    schedule_id INTEGER PRIMARY KEY,
+    schedule_exercise_id INTEGER REFERENCES exercise(exercise_id),
+    schedule_time_start TIMESTAMP NOT NULL,
+    schedule_time_end TIMESTAMP NOT NULL,
+    schedule_group INTEGER NOT NULL REFERENCES kinder_group(group_id),
+    schedule_meal INTEGER REFERENCES meal(meal_id),
+    schedule_premises INTEGER NOT NULL REFERENCES premises(premises_id),
+    CHECK (schedule_time_end > schedule_time_start)
+);
+
+CREATE TABLE attendance (
+    id_attendance INTEGER PRIMARY KEY,
+    id_child INTEGER NOT NULL REFERENCES child(id_child),
+    attendance_date DATE NOT NULL,
+    status BOOLEAN NOT NULL,
+    absence_reason TEXT,
+    time_in TIME,
+    time_out TIME,
+    UNIQUE (id_child, attendance_date),
+    CHECK (time_out > time_in),
+    CHECK (
+        status OR
+        (time_in IS NULL AND time_out IS NULL)
+    )
+);
+
+CREATE TABLE enrollment (
+    id_enrollment INTEGER PRIMARY KEY,
+    id_contract INTEGER NOT NULL REFERENCES contract(id_contract),
+    id_child INTEGER NOT NULL REFERENCES child(id_child),
+    id_group INTEGER NOT NULL REFERENCES kinder_group(group_id),
+    enrollment_date DATE NOT NULL,
+    withdrawal_date DATE,
+    status BOOLEAN NOT NULL,
+    CHECK (withdrawal_date >= enrollment_date)
 );
