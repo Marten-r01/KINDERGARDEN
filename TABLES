@@ -1,11 +1,5 @@
 SELECT current_database(), current_user, version();
 
-CREATE TABLE age_category (
-    age_category_id INTEGER NOT NULL,
-    min_age INTEGER CHECK ( min_age > 0 ),
-    max_age INTEGER CHECK ( max_age >= min_age )
-);
-
 CREATE TABLE dish (
     dish_id INTEGER NOT NULL UNIQUE,
     dish_name VARCHAR(100) NOT NULL,
@@ -39,22 +33,21 @@ CREATE TABLE job_title (
     primary key (job_title_id)
 );
 
-CREATE TABLE menu (
-    menu_id integer NOT NULL PRIMARY KEY ,
-    dish_id integer NOT NULL REFERENCES dish(dish_id),
-    menu_name_meal varchar(100) Not Null ,
-    menu_count_posisions integer not null check(menu_count_posisions > 0)
+CREATE TABLE meal (
+    meal_id INTEGER PRIMARY KEY,
+    meal_type VARCHAR(20) NOT NULL
 );
 
-CREATE TABLE meal (
-  meal_id integer not null primary key ,
-  meal_type varchar(20) not null,
-  menu_id integer not null references menu (menu_id)
+CREATE TABLE menu (
+    menu_id INTEGER PRIMARY KEY,
+    meal_id INTEGER NOT NULL REFERENCES meal(meal_id),
+    dish_id INTEGER NOT NULL REFERENCES dish(dish_id),
+    UNIQUE (meal_id, dish_id)
 );
 
 CREATE TABLE age_category (
   age_category_id integer not null  primary key,
-  age_category_yongest  integer not null check( age_category_yongest >0 and age_category_yongest < age_category_oldest),
+  age_category_youngest  integer not null check( age_category_youngest >0 and age_category_youngest < age_category_oldest),
   age_category_oldest integer not null check(age_category_oldest > 0)
 );
 
@@ -63,8 +56,7 @@ CREATE TABLE employee(
     employee_job_title integer not null references job_title(job_title_id),
     employee_telephone varchar(15) not null,
     employee_passport varchar(100) not null,
-    employee_date date not null,
-    employee_work_shift integer not null references work_shift(work_shift_id)
+    employee_date date not null
 );
 
 CREATE TABLE work_shift (
@@ -79,17 +71,106 @@ create table exercise (
     exercise_id integer not null primary key ,
     exercise_activity_id integer not null references type_activity(type_activity_id),
     exercise_place varchar(100) not null,
-    exercise_employee integer not null references employee(employee_id),
-    exercise_schedule integer not null references schedule(schedule_id)
+    exercise_employee integer not null references employee(employee_id)
+);
+
+CREATE TABLE child (
+    id_child integer NOT NULL PRIMARY KEY,
+    FIO text NOT NULL,
+    date_birth date NOT NULL,
+    sex bool NOT NULL,
+    birth_certificate varchar(20) NOT NULL UNIQUE,
+    adress text,
+    id_contract integer NOT NULL UNIQUE,
+    id_group integer NOT NULL
+);
+--как задавать ключи check and rewrite all
+
+CREATE TABLE medical_exam (
+    id_medical_exam integer NOT NULL PRIMARY KEY,
+    id_child integer REFERENCES child(id_child),
+    plan text,
+    date_exam date,
+    results text,
+    complaint text,
+    status bool
+ );
+
+CREATE TABLE medical_record(
+    id_medical_record integer NOT NULL PRIMARY KEY,
+    id_child integer REFERENCES child(id_child),
+    blood_type varchar(10) NOT NULL,
+    physical_mental text,
+    infections text,
+    operation_complited text,
+    alergic text,
+    diseases text
+);
+
+CREATE TABLE vaccination(
+     id_vaccination integer NOT NULL PRIMARY KEY,
+     id_medical_record integer REFERENCES medical_record(id_medical_record),
+     name varchar(40) NOT NULL,
+     place varchar(40) NOT NULL,
+     date_vac date,
+     status bool,
+     dose smallint
+ );
+
+CREATE TABLE parent(
+    id_parent integer NOT NULL PRIMARY KEY,
+    inn varchar(30) NOT NULL UNIQUE,
+    date_birth date,
+    id_contract INTEGER NOT NULL REFERENCES contract(id_contract),
+    contact_data text NOT NULL, --телефон и почта
+    passport varchar(30) NOT NULL UNIQUE,
+    adress text
+);
+-- могут ли ссылаться друг на друга (договор-родитель и ребенок-договор и тма и там перессылка друг на друга идет)???
+--надо подумать про договор и его связи с родителем и ребенком, они ссылаются друг на друга. платеж немного поменяла чтобы не было ссылок друг на друга (платеж не ссылается теперь на договор, просто хранит его информацию)
+
+
+CREATE TABLE contract(
+    id_contract integer NOT NULL PRIMARY KEY,
+    id_child integer REFERENCES child(id_child),
+    id_parent integer NOT NULL REFERENCES parent(id_parent),
+    sum numeric NOT NULL,
+    number_contract integer  NOT NULL UNIQUE,
+    bank text,
+    status bool,
+    date_start date,
+    date_end date,
+    id_paying integer NOT NULL REFERENCES  paying(id_paying)
+);
+
+CREATE TABLE paying(
+    id_paying integer NOT NULL PRIMARY KEY,
+    id_parent integer NOT NULL,
+    id_contract integer NOT NULL REFERENCES contract(id_contract), --не UNIQUE тк может быть несколько платежей по одному договору
+    number_contract integer NOT NULL,
+    date_paying date
+);
+
+CREATE TABLE kinder_group (
+    group_id integer not null primary key ,
+    group_number varchar(20) not null,
+    group_age_category integer not null references age_category(age_category_id),
+    group_schedule integer not null ,
+    group_employee integer not null references employee(employee_id)
 );
 
 CREATE TABLE schedule (
    schedule_id integer not null primary key ,
-   schedule_exercise_id integer not null references exercise(exercise_id),
+   schedule_exercise_id integer references exercise(exercise_id),
    schedule_time_start timestamp not null,
    schedule_time_end timestamp not null,
    schedule_age_category integer not null references age_category(age_category_id),
-   schedule_groupe integer not null references groupe(groupe_id),
-   schedule_meal integer not null references meal(meal_id),
+   schedule_group integer not null references kinder_group(group_id),
+   schedule_meal integer references meal(meal_id),
    schedule_premises integer not null references premises(premises_id)
 );
+
+ALTER TABLE child
+ADD CONSTRAINT fk_child_group
+FOREIGN KEY (id_group)
+REFERENCES kinder_group(group_id);
